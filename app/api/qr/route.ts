@@ -9,20 +9,18 @@ export async function GET(request: Request) {
     return new NextResponse("Missing slug", { status: 400 });
   }
 
-  const url = `${process.env.NEXT_PUBLIC_BASE_URL}/${slug}`;
+  const origin =
+    process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") ?? new URL(request.url).origin;
 
-  try {
-    const qr = await QRCode.toBuffer(url, {
-      width: 512,
-      margin: 2,
-    });
+  const targetUrl = `${origin}/${encodeURIComponent(slug)}`;
 
-    return new NextResponse(qr, {
-      headers: {
-        "Content-Type": "image/png",
-      },
-    });
-  } catch (err) {
-    return new NextResponse("QR generation failed", { status: 500 });
-  }
+  // SVG avoids Buffer / ArrayBuffer typing issues on Vercel builds
+  const svg = await QRCode.toString(targetUrl, { type: "svg", margin: 1 });
+
+  return new NextResponse(svg, {
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
 }
