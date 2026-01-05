@@ -19,15 +19,19 @@ type Profile = {
   links: LinkRow[] | null;
 };
 
+type Params = { slug: string };
+
 export default async function CardPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<Params>;
 }) {
+  const { slug } = await params;
+
   const { data, error } = await supabase
     .from("profiles")
     .select("*, links(*)")
-    .eq("slug", params.slug)
+    .eq("slug", slug)
     .single();
 
   const profile = data as Profile | null;
@@ -38,8 +42,7 @@ export default async function CardPage({
         <div className="max-w-md w-full rounded-xl border p-6 text-center">
           <h1 className="text-xl font-semibold">Card not found</h1>
           <p className="mt-2 text-sm text-gray-600">
-            No profile exists for:{" "}
-            <span className="font-mono">{params.slug}</span>
+            No profile exists for: <span className="font-mono">{slug}</span>
           </p>
         </div>
       </main>
@@ -136,7 +139,7 @@ export default async function CardPage({
             ))}
 
           <a
-            href={`/api/vcf?slug=${encodeURIComponent(params.slug)}`}
+            href={`/api/vcf?slug=${encodeURIComponent(slug)}`}
             className="block rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50 transition"
           >
             Save Contact
@@ -146,8 +149,8 @@ export default async function CardPage({
         {/* QR Code */}
         <div className="mt-8 flex flex-col items-center gap-2">
           <img
-            src={`/api/qr?slug=${encodeURIComponent(params.slug)}`}
-            alt={`QR code for ${params.slug}`}
+            src={`/api/qr?slug=${encodeURIComponent(slug)}`}
+            alt={`QR code for ${slug}`}
             className="w-40 h-40"
           />
           <p className="text-xs text-gray-500">Scan to open this card</p>
