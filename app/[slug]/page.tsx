@@ -22,12 +22,16 @@ type Profile = {
 export default async function CardPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const { slug } = await params;
+
   const { data, error } = await supabase
     .from("profiles")
-    .select("full_name,title,company,email,phone,website,location,bio,links(id,label,url,sort_order)")
-    .eq("slug", params.slug)
+    .select(
+      "full_name,title,company,email,phone,website,location,bio,links(id,label,url,sort_order)"
+    )
+    .eq("slug", slug)
     .single();
 
   const profile = data as Profile | null;
@@ -38,7 +42,7 @@ export default async function CardPage({
         <div className="max-w-md w-full rounded-xl border p-6 text-center">
           <h1 className="text-xl font-semibold">Card not found</h1>
           <p className="mt-2 text-sm text-gray-600">
-            No profile exists for: <span className="font-mono">{params.slug}</span>
+            No profile exists for: <span className="font-mono">{slug}</span>
           </p>
         </div>
       </main>
@@ -57,7 +61,6 @@ export default async function CardPage({
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="max-w-md w-full rounded-2xl border p-6 shadow-sm bg-white">
-        {/* Header */}
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold">{profile.full_name ?? "Unnamed"}</h1>
 
@@ -69,7 +72,6 @@ export default async function CardPage({
           )}
         </div>
 
-        {/* Contact details */}
         <div className="mt-6 space-y-2 text-sm">
           {profile.email && (
             <p>
@@ -110,10 +112,8 @@ export default async function CardPage({
           )}
         </div>
 
-        {/* Bio */}
         {profile.bio && <p className="mt-6 text-sm text-gray-700">{profile.bio}</p>}
 
-        {/* Buttons */}
         <div className="mt-8 space-y-3">
           {links
             .slice()
@@ -131,18 +131,17 @@ export default async function CardPage({
             ))}
 
           <a
-            href={`/api/vcf?slug=${encodeURIComponent(params.slug)}`}
+            href={`/api/vcf?slug=${encodeURIComponent(slug)}`}
             className="block rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50 transition"
           >
             Save Contact
           </a>
         </div>
 
-        {/* QR Code */}
         <div className="mt-8 flex flex-col items-center gap-2">
           <img
-            src={`/api/qr?slug=${encodeURIComponent(params.slug)}`}
-            alt={`QR code for ${params.slug}`}
+            src={`/api/qr?slug=${encodeURIComponent(slug)}`}
+            alt={`QR code for ${slug}`}
             className="w-40 h-40"
           />
           <p className="text-xs text-gray-500">Scan to open this card</p>
