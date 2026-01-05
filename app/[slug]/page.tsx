@@ -1,15 +1,36 @@
 import { supabase } from "@/lib/supabase";
 
+type LinkRow = {
+  id: string;
+  label: string;
+  url: string;
+  sort_order: number | null;
+};
+
+type Profile = {
+  full_name: string | null;
+  title: string | null;
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  location: string | null;
+  bio: string | null;
+  links: LinkRow[] | null;
+};
+
 export default async function CardPage({
   params,
 }: {
   params: { slug: string };
 }) {
-  const { data: profile, error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("*, links(*)")
     .eq("slug", params.slug)
     .single();
+
+  const profile = data as Profile | null;
 
   if (error || !profile) {
     return (
@@ -26,11 +47,13 @@ export default async function CardPage({
   }
 
   const websiteHref =
-    profile.website && typeof profile.website === "string"
-      ? profile.website.startsWith("http")
-        ? profile.website
-        : `https://${profile.website}`
+    profile.website && profile.website.startsWith("http")
+      ? profile.website
+      : profile.website
+      ? `https://${profile.website}`
       : null;
+
+  const links: LinkRow[] = profile.links ?? [];
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
@@ -97,27 +120,21 @@ export default async function CardPage({
 
         {/* Buttons */}
         <div className="mt-8 space-y-3">
-          {/* Links (WhatsApp etc) */}
-          {profile.links &&
-            profile.links.length > 0 &&
-            profile.links
-              .sort(
-                (a: any, b: any) =>
-                  (a.sort_order ?? 999) - (b.sort_order ?? 999)
-              )
-              .map((link: any) => (
-                <a
-                  key={link.id}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50 transition"
-                >
-                  {link.label}
-                </a>
-              ))}
+          {links
+            .slice()
+            .sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999))
+            .map((link) => (
+              <a
+                key={link.id}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50 transition"
+              >
+                {link.label}
+              </a>
+            ))}
 
-          {/* Save Contact */}
           <a
             href={`/api/vcf?slug=${encodeURIComponent(params.slug)}`}
             className="block rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50 transition"
