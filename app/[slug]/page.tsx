@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic"; // ✅ stop Vercel caching this page
+
 type LinkRow = {
   id: string;
   label: string;
@@ -17,8 +19,11 @@ type Profile = {
   location: string | null;
   bio: string | null;
 
-  // ✅ add this:
   logo_url: string | null;
+
+  // ✅ theme fields
+  theme: string | null; // "light" | "dark"
+  theme_color: string | null; // e.g. "#111827"
 
   links: LinkRow[] | null;
 };
@@ -33,7 +38,7 @@ export default async function CardPage({
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "full_name,title,company,email,phone,website,location,bio,logo_url,links(id,label,url,sort_order)"
+      "full_name,title,company,email,phone,website,location,bio,logo_url,theme,theme_color,links(id,label,url,sort_order)"
     )
     .eq("slug", slug)
     .single();
@@ -62,16 +67,22 @@ export default async function CardPage({
 
   const links: LinkRow[] = profile.links ?? [];
 
-  // ✅ decide what logo to show
-  // If a client has a logo_url, use it. Otherwise use your default.
   const logoSrc = profile.logo_url?.trim() ? profile.logo_url.trim() : "/mm.svg";
 
+  // ✅ theme logic
+  const isDark = (profile.theme ?? "light").toLowerCase() === "dark";
+  const bg = isDark ? (profile.theme_color?.trim() || "#111827") : "#ffffff";
+  const text = isDark ? "#ffffff" : "#111827";
+
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
+    <main
+      className="min-h-screen flex items-center justify-center p-6"
+      style={{ backgroundColor: bg, color: text }}
+    >
       <div className="w-full max-w-md">
-        {/* ✅ LOGO (container controls size; logo-agnostic; SVG/PNG safe) */}
+        {/* ✅ LOGO */}
         <div className="mb-8 flex justify-center">
-          <div className="h-20 sm:h-24 md:h-28 w-full max-w-[280px]">
+          <div className="h-24 w-full max-w-[280px]">
             <img
               src={logoSrc}
               alt={`${profile.company ?? "Company"} logo`}
@@ -81,7 +92,8 @@ export default async function CardPage({
           </div>
         </div>
 
-        <div className="w-full rounded-2xl border p-6 shadow-sm bg-white">
+        {/* Card stays white for readability */}
+        <div className="w-full rounded-2xl border p-6 shadow-sm bg-white text-gray-900">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold">
               {profile.full_name ?? "Unnamed"}
