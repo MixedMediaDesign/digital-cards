@@ -33,7 +33,6 @@ export default async function CardPage({
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      // ✅ add logo_url in the select:
       "full_name,title,company,email,phone,website,location,bio,logo_url,links(id,label,url,sort_order)"
     )
     .eq("slug", slug)
@@ -70,14 +69,16 @@ export default async function CardPage({
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        {/* ✅ LOGO (per profile, fallback to /mm.svg) */}
+        {/* ✅ LOGO (container controls size; logo-agnostic; SVG/PNG safe) */}
         <div className="mb-8 flex justify-center">
-          <img
-            src={logoSrc}
-            alt={`${profile.company ?? "Company"} logo`}
-            className="h-10 w-auto"
-            loading="eager"
-          />
+          <div className="h-20 sm:h-24 md:h-28 w-full max-w-[280px]">
+            <img
+              src={logoSrc}
+              alt={`${profile.company ?? "Company"} logo`}
+              className="h-full w-full object-contain"
+              loading="eager"
+            />
+          </div>
         </div>
 
         <div className="w-full rounded-2xl border p-6 shadow-sm bg-white">
