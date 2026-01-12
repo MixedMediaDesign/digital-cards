@@ -351,7 +351,7 @@ export default async function CardPage({
             <img
               src={`/api/qr?slug=${encodeURIComponent(slug)}`}
               alt={`QR code for ${slug}`}
-              className="w-40 h-40"
+              className="w-32 h-32"
             />
             <p
               className={`text-xs ${
