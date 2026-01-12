@@ -12,6 +12,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 
+/* ---------------- Types ---------------- */
+
 type LinkRow = {
   id: string;
   label: string;
@@ -28,22 +30,17 @@ type Profile = {
   website: string | null;
   location: string | null;
   bio: string | null;
-
   logo_url: string | null;
-
-  // themes
-  theme: string | null; // "light" | "dark" | "full"
-  theme_color: string | null; // hex like #0B2D4D
-
-  // optional photo
+  theme: string | null;
+  theme_color: string | null;
   avatar_url: string | null;
-
   links: LinkRow[] | null;
 };
 
+/* ---------------- Helpers ---------------- */
+
 function safeHex(hex: string | null, fallback = "#111827") {
-  const v = (hex ?? "").trim();
-  return /^#[0-9A-Fa-f]{6}$/.test(v) ? v : fallback;
+  return /^#[0-9A-Fa-f]{6}$/.test(hex ?? "") ? hex! : fallback;
 }
 
 function normalizeWebsite(url: string | null) {
@@ -60,14 +57,14 @@ function mapsHref(location: string | null) {
 
 function iconForUrl(url: string) {
   const u = url.toLowerCase();
-
   if (u.includes("wa.me") || u.includes("whatsapp")) return MessageCircle;
   if (u.includes("linkedin.com")) return Linkedin;
   if (u.includes("instagram.com")) return Instagram;
   if (u.includes("facebook.com")) return Facebook;
-
   return LinkIcon;
 }
+
+/* ---------------- Row component ---------------- */
 
 function RowLink({
   href,
@@ -82,53 +79,43 @@ function RowLink({
   subtitle?: string | null;
   variant: "light" | "dark" | "full";
 }) {
-  const base =
-    "w-full flex items-center justify-between rounded-2xl px-4 py-3 transition";
-  const left = "flex items-center gap-3 min-w-0";
-  const textWrap = "min-w-0";
-  const titleCls = "font-semibold truncate";
-  const subCls =
+  const box =
     variant === "full"
-      ? "text-xs text-white/70 truncate"
-      : "text-xs text-gray-500 truncate";
-
-  const boxCls =
-    variant === "full"
-      ? "bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md"
-      : "bg-white hover:bg-gray-50 border";
+      ? "bg-white/10 border border-white/15 hover:bg-white/15"
+      : "bg-white border hover:bg-gray-50";
 
   const iconWrap =
     variant === "full"
-      ? "h-10 w-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center"
-      : "h-10 w-10 rounded-xl bg-gray-50 border flex items-center justify-center";
+      ? "bg-white/10 border border-white/20"
+      : "bg-gray-50 border";
 
-  const iconCls = variant === "full" ? "text-white" : "text-gray-700";
+  const textSub =
+    variant === "full" ? "text-white/70" : "text-gray-500";
 
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${base} ${boxCls}`}
+      className={`flex items-center justify-between rounded-2xl px-4 py-3 transition ${box}`}
     >
-      <div className={left}>
-        <div className={iconWrap}>
-          <Icon className={iconCls} size={18} />
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${iconWrap}`}>
+          <Icon size={18} />
         </div>
-
-        <div className={textWrap}>
-          <div className={titleCls}>{title}</div>
-          {subtitle ? <div className={subCls}>{subtitle}</div> : null}
+        <div className="min-w-0">
+          <div className="font-semibold truncate">{title}</div>
+          {subtitle && variant !== "full" && (
+            <div className={`text-xs truncate ${textSub}`}>{subtitle}</div>
+          )}
         </div>
       </div>
-
-      <ExternalLink
-        size={16}
-        className={variant === "full" ? "text-white/70" : "text-gray-400"}
-      />
+      <ExternalLink size={16} className={variant === "full" ? "text-white/60" : "text-gray-400"} />
     </a>
   );
 }
+
+/* ---------------- Page ---------------- */
 
 export default async function CardPage({
   params,
@@ -152,168 +139,109 @@ export default async function CardPage({
       <main className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md w-full rounded-xl border p-6 text-center bg-white">
           <h1 className="text-xl font-semibold">Card not found</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            No profile exists for: <span className="font-mono">{slug}</span>
-          </p>
+          <p className="mt-2 text-sm text-gray-600">{slug}</p>
         </div>
       </main>
     );
   }
 
-  const theme = (profile.theme ?? "light").toLowerCase() as
-    | "light"
-    | "dark"
-    | "full";
-
-  const bg = safeHex(profile.theme_color, "#111827");
+  const theme = (profile.theme ?? "light") as "light" | "dark" | "full";
+  const bg = safeHex(profile.theme_color);
   const websiteHref = normalizeWebsite(profile.website);
   const locationHref = mapsHref(profile.location);
 
-  const links: LinkRow[] = (profile.links ?? [])
-    .slice()
-    .sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
+  const links = (profile.links ?? []).sort(
+    (a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999)
+  );
 
-  const logoSrc = profile.logo_url?.trim() ? profile.logo_url.trim() : "/mm.svg";
+  const logoSrc = profile.logo_url || "/mm.svg";
 
-  // Page background styling per theme
-  const pageStyle =
-    theme === "light"
-      ? {}
-      : {
-          background: bg,
-        };
-
-  const outerText =
-    theme === "full"
-      ? "text-white"
-      : theme === "dark"
-      ? "text-white"
-      : "text-gray-900";
-
-  // The “main card” container (the white block in your sample)
-  const cardShell =
-    theme === "full"
-      ? "bg-transparent border-0 shadow-none"
-      : theme === "dark"
-      ? "bg-white border-0 shadow-sm"
-      : "bg-white border shadow-sm";
-
-  // Keep QR always scannable: put it on a white panel in full theme
-  const qrWrap =
-    theme === "full"
-      ? "mt-6 flex flex-col items-center gap-2 rounded-2xl bg-white p-4"
-      : "mt-8 flex flex-col items-center gap-2";
+  /* ---------------- Layout ---------------- */
 
   return (
     <main
-      className={`min-h-screen flex items-center justify-center p-6 ${outerText}`}
-      style={pageStyle}
+      className="min-h-[100dvh] flex justify-center p-6 py-6 sm:py-10"
+      style={theme === "full" ? { background: bg } : undefined}
     >
-      <div className="w-full max-w-md">
-        {/* LOGO */}
-        <div className="mb-6 flex justify-center">
-          <img
-            src={logoSrc}
-            alt={`${profile.company ?? "Company"} logo`}
-            className="h-20 w-auto max-w-full object-contain"
-            loading="eager"
-          />
-        </div>
+      <div className="w-full max-w-md text-center">
+        {/* Logo */}
+        <img
+          src={logoSrc}
+          alt="Logo"
+          className="mx-auto mb-5 h-20 w-auto object-contain"
+        />
 
-        {/* optional avatar for “sample” style */}
-        {theme === "full" && profile.avatar_url?.trim() ? (
-          <div className="mb-5 flex justify-center">
-            <img
-              src={profile.avatar_url.trim()}
-              alt={profile.full_name ?? "Profile photo"}
-              className="h-28 w-28 rounded-full object-cover border border-white/20"
-            />
-          </div>
-        ) : null}
+        {/* Card */}
+        <div
+          className={`rounded-3xl p-6 ${
+            theme === "full" ? "bg-transparent" : "bg-white shadow-sm"
+          }`}
+        >
+          <h1 className={`text-2xl font-semibold ${theme === "full" ? "text-white" : ""}`}>
+            {profile.full_name}
+          </h1>
 
-        <div className={`w-full rounded-3xl p-6 ${cardShell}`}>
-          {/* Name + title */}
-          <div className={theme === "full" ? "text-center" : ""}>
-            <h1
-              className={`text-2xl font-semibold ${
-                theme === "full" ? "text-white" : "text-gray-900"
-              }`}
-            >
-              {profile.full_name ?? "Unnamed"}
-            </h1>
+          {(profile.title || profile.company) && (
+            <p className={`mt-1 ${theme === "full" ? "text-white/70" : "text-gray-600"}`}>
+              {profile.title}
+              {profile.company ? ` • ${profile.company}` : ""}
+            </p>
+          )}
 
-            {(profile.title || profile.company) && (
-              <p
-                className={`mt-1 ${
-                  theme === "full" ? "text-white/70" : "text-gray-600"
-                }`}
-              >
-                {profile.title ?? ""}
-                {profile.company ? ` • ${profile.company}` : ""}
-              </p>
-            )}
-          </div>
+          {/* Save */}
+          <a
+            href={`/api/vcf?slug=${encodeURIComponent(slug)}`}
+            className={`mt-4 block rounded-2xl px-4 py-3 font-semibold ${
+              theme === "full"
+                ? "bg-white/15 text-white"
+                : "border hover:bg-gray-50"
+            }`}
+          >
+            Save Contact
+          </a>
 
-          {/* Save contact button */}
-          <div className="mt-5">
-            <a
-              href={`/api/vcf?slug=${encodeURIComponent(slug)}`}
-              className={
-                theme === "full"
-                  ? "block w-full rounded-2xl bg-white/15 border border-white/20 px-4 py-3 text-center font-semibold text-white hover:bg-white/20 transition backdrop-blur-md"
-                  : "block w-full rounded-2xl border px-4 py-3 text-center font-semibold hover:bg-gray-50 transition"
-              }
-            >
-              Save Contact
-            </a>
-          </div>
-
-          {/* Icon rows */}
+          {/* Links */}
           <div className="mt-5 space-y-3">
-            {profile.phone ? (
+            {profile.phone && (
               <RowLink
                 href={`tel:${profile.phone}`}
                 icon={Phone}
                 title="Call me"
                 subtitle={profile.phone}
-                variant={theme === "light" ? "light" : theme}
+                variant={theme}
               />
-            ) : null}
+            )}
 
-            {/* WhatsApp is optional; add only if you want it */}
-            {/* Example: make a link in your links table to https://wa.me/27XXXXXXXXX */}
-
-            {profile.email ? (
+            {profile.email && (
               <RowLink
                 href={`mailto:${profile.email}`}
                 icon={Mail}
                 title="Email me"
                 subtitle={profile.email}
-                variant={theme === "light" ? "light" : theme}
+                variant={theme}
               />
-            ) : null}
+            )}
 
-            {websiteHref ? (
+            {websiteHref && (
               <RowLink
                 href={websiteHref}
                 icon={Globe}
                 title="Visit my website"
                 subtitle={profile.website}
-                variant={theme === "light" ? "light" : theme}
+                variant={theme}
               />
-            ) : null}
+            )}
 
-            {locationHref ? (
+            {locationHref && (
               <RowLink
                 href={locationHref}
                 icon={MapPin}
                 title="Find me"
                 subtitle={profile.location}
-                variant={theme === "light" ? "light" : theme}
+                variant={theme}
               />
-            ) : null}
+            )}
 
-            {/* Extra custom links from your links table */}
             {links.map((link) => {
               const Icon = iconForUrl(link.url);
               return (
@@ -322,38 +250,24 @@ export default async function CardPage({
                   href={link.url}
                   icon={Icon}
                   title={link.label}
-                  subtitle={link.url}
-                  variant={theme === "light" ? "light" : theme}
+                  variant={theme}
                 />
               );
             })}
           </div>
 
-          {/* Bio */}
-          {profile.bio ? (
-            <p
-              className={`mt-6 text-sm ${
-                theme === "full" ? "text-white/80" : "text-gray-700"
-              }`}
-            >
-              {profile.bio}
-            </p>
-          ) : null}
-
-          {/* QR */}
-          <div className={qrWrap}>
+          {/* QR — FIXED */}
+          <div
+            className={`mt-4 flex flex-col items-center gap-1 ${
+              theme === "full" ? "bg-white rounded-2xl p-3" : ""
+            }`}
+          >
             <img
               src={`/api/qr?slug=${encodeURIComponent(slug)}`}
-              alt={`QR code for ${slug}`}
-              className="w-40 h-40"
+              alt="QR"
+              className="w-28 h-28 sm:w-40 sm:h-40"
             />
-            <p
-              className={`text-xs ${
-                theme === "full" ? "text-gray-600" : "text-gray-500"
-              }`}
-            >
-              Scan to open this card
-            </p>
+            <p className="text-[11px] text-gray-600">Scan to open this card</p>
           </div>
         </div>
       </div>
