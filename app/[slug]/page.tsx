@@ -347,20 +347,20 @@ export default async function CardPage({
           ) : null}
 
           {/* QR */}
-          <div className={qrWrap}>
-            <img
-              src={`/api/qr?slug=${encodeURIComponent(slug)}`}
-              alt={`QR code for ${slug}`}
-              className="w-32 h-32"
-            />
-            <p
-              className={`text-xs ${
-                theme === "full" ? "text-gray-600" : "text-gray-500"
-              }`}
-            >
-              Scan to open this card
-            </p>
-          </div>
+<div className="mt-4 flex justify-center">
+  <div className="inline-flex flex-col items-center gap-1 rounded-lg bg-white px-3 py-2">
+    <img
+      src={`/api/qr?slug=${encodeURIComponent(slug)}`}
+      alt="QR"
+      className="w-32 h-32"
+    />
+    <p className="text-[11px] text-gray-600">
+      Scan to open this card
+    </p>
+  </div>
+</div>
+
+
         </div>
       </div>
     </main>
