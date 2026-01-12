@@ -30,10 +30,16 @@ type Profile = {
   website: string | null;
   location: string | null;
   bio: string | null;
+
   logo_url: string | null;
-  theme: string | null;
-  theme_color: string | null;
+
+  // themes
+  theme: string | null; // "light" | "dark" | "full"
+  theme_color: string | null; // hex like #0B2D4D
+
+  // optional photo
   avatar_url: string | null;
+
   links: LinkRow[] | null;
 };
 
@@ -59,10 +65,12 @@ function mapsHref(location: string | null) {
 
 function iconForUrl(url: string) {
   const u = url.toLowerCase();
+
   if (u.includes("wa.me") || u.includes("whatsapp")) return MessageCircle;
   if (u.includes("linkedin.com")) return Linkedin;
   if (u.includes("instagram.com")) return Instagram;
   if (u.includes("facebook.com")) return Facebook;
+
   return LinkIcon;
 }
 
@@ -81,54 +89,49 @@ function RowLink({
   subtitle?: string | null;
   variant: "light" | "dark" | "full";
 }) {
-  const box =
+  const base =
+    "w-full flex items-center justify-between rounded-2xl px-4 py-3 transition";
+  const left = "flex items-center gap-3 min-w-0";
+  const textWrap = "min-w-0";
+  const titleCls = "font-semibold truncate";
+  const subCls =
     variant === "full"
-      ? "bg-white/10 border border-white/15 hover:bg-white/15"
-      : "bg-white border hover:bg-gray-50";
+      ? "text-xs text-white/70 truncate"
+      : "text-xs text-gray-500 truncate";
+
+  const boxCls =
+    variant === "full"
+      ? "bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md"
+      : "bg-white hover:bg-gray-50 border";
 
   const iconWrap =
     variant === "full"
-      ? "bg-white/10 border border-white/20"
-      : "bg-gray-50 border";
+      ? "h-10 w-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center"
+      : "h-10 w-10 rounded-xl bg-gray-50 border flex items-center justify-center";
 
-  const titleCls =
-    variant === "full" ? "text-white" : "text-gray-900";
-
-  const subCls =
-    variant === "full" ? "text-white/70" : "text-gray-500";
-
-  const iconCls =
-    variant === "full" ? "text-white" : "text-gray-700";
+  const iconCls = variant === "full" ? "text-white" : "text-gray-700";
 
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`flex items-center justify-between rounded-2xl px-4 py-3 transition ${box}`}
+      className={`${base} ${boxCls}`}
     >
-      <div className="flex items-center gap-3 min-w-0">
-        <div
-          className={`h-10 w-10 rounded-xl flex items-center justify-center ${iconWrap}`}
-        >
-          {/* ✅ force visible icon colour */}
-          <Icon size={18} className={iconCls} strokeWidth={2} />
+      <div className={left}>
+        <div className={iconWrap}>
+          <Icon className={iconCls} size={18} strokeWidth={2} />
         </div>
 
-        <div className="min-w-0">
-          {/* ✅ force visible title colour */}
-          <div className={`font-semibold truncate ${titleCls}`}>{title}</div>
-
-          {/* show subtitle for ALL themes if provided */}
-          {subtitle ? (
-            <div className={`text-xs truncate ${subCls}`}>{subtitle}</div>
-          ) : null}
+        <div className={textWrap}>
+          <div className={titleCls}>{title}</div>
+          {subtitle ? <div className={subCls}>{subtitle}</div> : null}
         </div>
       </div>
 
       <ExternalLink
         size={16}
-        className={variant === "full" ? "text-white/60" : "text-gray-400"}
+        className={variant === "full" ? "text-white/70" : "text-gray-400"}
       />
     </a>
   );
@@ -158,121 +161,165 @@ export default async function CardPage({
       <main className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md w-full rounded-xl border p-6 text-center bg-white">
           <h1 className="text-xl font-semibold">Card not found</h1>
-          <p className="mt-2 text-sm text-gray-600">{slug}</p>
+          <p className="mt-2 text-sm text-gray-600">
+            No profile exists for: <span className="font-mono">{slug}</span>
+          </p>
         </div>
       </main>
     );
   }
 
-  const theme = ((profile.theme ?? "light").toLowerCase() as
+  const theme = (profile.theme ?? "light").toLowerCase() as
     | "light"
     | "dark"
-    | "full");
+    | "full";
 
   const bg = safeHex(profile.theme_color, "#111827");
   const websiteHref = normalizeWebsite(profile.website);
   const locationHref = mapsHref(profile.location);
 
-  const links = (profile.links ?? []).slice().sort(
-    (a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999)
-  );
+  const links: LinkRow[] = (profile.links ?? [])
+    .slice()
+    .sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
 
-  const logoSrc = (profile.logo_url?.trim() ? profile.logo_url.trim() : "/mm.svg");
+  const logoSrc = profile.logo_url?.trim() ? profile.logo_url.trim() : "/mm.svg";
 
-  /* ---------------- Layout ---------------- */
+  // Page background styling per theme
+  const pageStyle =
+    theme === "light"
+      ? {}
+      : {
+          background: bg,
+        };
+
+  const outerText =
+    theme === "full"
+      ? "text-white"
+      : theme === "dark"
+      ? "text-white"
+      : "text-gray-900";
+
+  // Main card container
+  const cardShell =
+    theme === "full"
+      ? "bg-transparent border-0 shadow-none"
+      : theme === "dark"
+      ? "bg-white border-0 shadow-sm"
+      : "bg-white border shadow-sm";
+
+  // QR on white panel in full theme
+  const qrWrap =
+    theme === "full"
+      ? "mt-6 flex flex-col items-center gap-2 rounded-2xl bg-white p-4"
+      : "mt-8 flex flex-col items-center gap-2";
 
   return (
     <main
-      className="min-h-[100dvh] flex justify-center p-6 py-6 sm:py-10"
-      style={theme === "full" ? { background: bg } : undefined}
+      className={`min-h-screen flex items-center justify-center p-6 ${outerText}`}
+      style={pageStyle}
     >
-      <div className="w-full max-w-md text-center">
-        {/* Logo */}
-        <img
-          src={logoSrc}
-          alt="Logo"
-          className="mx-auto mb-5 h-20 w-auto object-contain"
-        />
+      <div className="w-full max-w-md">
+        {/* LOGO */}
+        <div className="mb-6 flex justify-center">
+          <img
+            src={logoSrc}
+            alt={`${profile.company ?? "Company"} logo`}
+            className="h-20 w-auto max-w-full object-contain"
+            loading="eager"
+          />
+        </div>
 
-        {/* Card */}
-        <div
-          className={`rounded-3xl p-6 ${
-            theme === "full" ? "bg-transparent" : "bg-white shadow-sm"
-          }`}
-        >
-          <h1
-            className={`text-2xl font-semibold ${
-              theme === "full" ? "text-white" : "text-gray-900"
-            }`}
-          >
-            {profile.full_name ?? "Unnamed"}
-          </h1>
+        {/* optional avatar */}
+        {theme === "full" && profile.avatar_url?.trim() ? (
+          <div className="mb-5 flex justify-center">
+            <img
+              src={profile.avatar_url.trim()}
+              alt={profile.full_name ?? "Profile photo"}
+              className="h-28 w-28 rounded-full object-cover border border-white/20"
+            />
+          </div>
+        ) : null}
 
-          {(profile.title || profile.company) && (
-            <p
-              className={`mt-1 ${
-                theme === "full" ? "text-white/70" : "text-gray-600"
+        <div className={`w-full rounded-3xl p-6 ${cardShell}`}>
+          {/* Name + title */}
+          <div className={theme === "full" ? "text-center" : ""}>
+            <h1
+              className={`text-2xl font-semibold ${
+                theme === "full" ? "text-white" : "text-gray-900"
               }`}
             >
-              {profile.title ?? ""}
-              {profile.company ? ` • ${profile.company}` : ""}
-            </p>
-          )}
+              {profile.full_name ?? "Unnamed"}
+            </h1>
 
-          {/* Save */}
-          <a
-            href={`/api/vcf?slug=${encodeURIComponent(slug)}`}
-            className={`mt-4 block rounded-2xl px-4 py-3 font-semibold ${
-              theme === "full"
-                ? "bg-white/15 text-white border border-white/20 hover:bg-white/20 transition"
-                : "border hover:bg-gray-50 transition"
-            }`}
-          >
-            Save Contact
-          </a>
+            {(profile.title || profile.company) && (
+              <p
+                className={`mt-1 ${
+                  theme === "full" ? "text-white/70" : "text-gray-600"
+                }`}
+              >
+                {profile.title ?? ""}
+                {profile.company ? ` • ${profile.company}` : ""}
+              </p>
+            )}
+          </div>
 
-          {/* Links */}
+          {/* Save contact */}
+          <div className="mt-5">
+            <a
+              href={`/api/vcf?slug=${encodeURIComponent(slug)}`}
+              className={
+                theme === "full"
+                  ? "block w-full rounded-2xl bg-white/15 border border-white/20 px-4 py-3 text-center font-semibold text-white hover:bg-white/20 transition backdrop-blur-md"
+                  : "block w-full rounded-2xl border px-4 py-3 text-center font-semibold hover:bg-gray-50 transition"
+              }
+            >
+              Save Contact
+            </a>
+          </div>
+
+          {/* Icon rows */}
           <div className="mt-5 space-y-3">
-            {profile.phone && (
+            {profile.phone ? (
               <RowLink
                 href={`tel:${profile.phone}`}
                 icon={Phone}
                 title="Call me"
                 subtitle={profile.phone}
-                variant={theme}
+                variant={theme === "light" ? "light" : theme}
               />
-            )}
+            ) : null}
 
-            {profile.email && (
+            {profile.email ? (
               <RowLink
                 href={`mailto:${profile.email}`}
                 icon={Mail}
                 title="Email me"
                 subtitle={profile.email}
-                variant={theme}
+                variant={theme === "light" ? "light" : theme}
               />
-            )}
+            ) : null}
 
-            {websiteHref && (
+            {websiteHref ? (
               <RowLink
                 href={websiteHref}
                 icon={Globe}
                 title="Visit my website"
                 subtitle={profile.website}
-                variant={theme}
+                variant={theme === "light" ? "light" : theme}
               />
-            )}
+            ) : null}
 
-            {locationHref && (
+            {locationHref ? (
               <RowLink
                 href={locationHref}
                 icon={MapPin}
                 title="Find me"
                 subtitle={profile.location}
-                variant={theme}
+                variant={theme === "light" ? "light" : theme}
               />
-            )}
+            ) : null}
 
+            {/* Custom links */}
             {links.map((link) => {
               const Icon = iconForUrl(link.url);
               return (
@@ -282,28 +329,33 @@ export default async function CardPage({
                   icon={Icon}
                   title={link.label}
                   subtitle={link.url}
-                  variant={theme}
+                  variant={theme === "light" ? "light" : theme}
                 />
               );
             })}
           </div>
 
-          {/* QR — smaller so it fits */}
-          <div
-            className={`mt-4 flex flex-col items-center gap-1 ${
-              theme === "full" ? "bg-white rounded-2xl p-3" : ""
-            }`}
-          >
+          {/* Bio */}
+          {profile.bio ? (
+            <p
+              className={`mt-6 text-sm ${
+                theme === "full" ? "text-white/80" : "text-gray-700"
+              }`}
+            >
+              {profile.bio}
+            </p>
+          ) : null}
+
+          {/* QR */}
+          <div className={qrWrap}>
             <img
               src={`/api/qr?slug=${encodeURIComponent(slug)}`}
-              alt="QR"
-              className="w-28 h-28 sm:w-36 sm:h-36"
+              alt={`QR code for ${slug}`}
+              className="w-40 h-40"
             />
-
-            {/* ✅ readable caption in both modes */}
             <p
-              className={`text-[11px] ${
-                theme === "full" ? "text-gray-700" : "text-gray-600"
+              className={`text-xs ${
+                theme === "full" ? "text-gray-600" : "text-gray-500"
               }`}
             >
               Scan to open this card
