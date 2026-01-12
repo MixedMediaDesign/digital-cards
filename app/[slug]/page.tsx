@@ -34,8 +34,12 @@ type Profile = {
   logo_url: string | null;
 
   // themes
-  theme: string | null; // "light" | "dark" | "full"
-  theme_color: string | null; // hex like #0B2D4D
+  theme: string | null; // "light" | "dark" | "full" | "gradient"
+  theme_color: string | null; // hex like #0B2D4D (used for dark/full)
+
+  // NEW: gradient colours (full background)
+  theme_gradient_from: string | null; // hex like #0B2D4D
+  theme_gradient_to: string | null; // hex like #02121F
 
   // optional photo
   avatar_url: string | null;
@@ -89,8 +93,9 @@ function RowLink({
   subtitle?: string | null;
   variant: "light" | "dark" | "full";
 }) {
+  // slightly less rounded than before
   const base =
-    "w-full flex items-center justify-between rounded-2xl px-4 py-3 transition";
+    "w-full flex items-center justify-between rounded-xl px-4 py-3 transition";
   const left = "flex items-center gap-3 min-w-0";
   const textWrap = "min-w-0";
   const titleCls = "font-semibold truncate";
@@ -106,8 +111,8 @@ function RowLink({
 
   const iconWrap =
     variant === "full"
-      ? "h-10 w-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center"
-      : "h-10 w-10 rounded-xl bg-gray-50 border flex items-center justify-center";
+      ? "h-10 w-10 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center"
+      : "h-10 w-10 rounded-lg bg-gray-50 border flex items-center justify-center";
 
   const iconCls = variant === "full" ? "text-white" : "text-gray-700";
 
@@ -149,7 +154,7 @@ export default async function CardPage({
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "full_name,title,company,email,phone,website,location,bio,logo_url,theme,theme_color,avatar_url,links(id,label,url,sort_order)"
+      "full_name,title,company,email,phone,website,location,bio,logo_url,theme,theme_color,theme_gradient_from,theme_gradient_to,avatar_url,links(id,label,url,sort_order)"
     )
     .eq("slug", slug)
     .single();
@@ -172,9 +177,18 @@ export default async function CardPage({
   const theme = (profile.theme ?? "light").toLowerCase() as
     | "light"
     | "dark"
-    | "full";
+    | "full"
+    | "gradient";
+
+  // Treat gradient like "full" for UI styling (glass rows, white text)
+  const uiVariant: "light" | "dark" | "full" =
+    theme === "gradient" ? "full" : theme === "dark" ? "full" : theme;
 
   const bg = safeHex(profile.theme_color, "#111827");
+
+  const gradFrom = safeHex(profile.theme_gradient_from, bg);
+  const gradTo = safeHex(profile.theme_gradient_to, "#000000");
+
   const websiteHref = normalizeWebsite(profile.website);
   const locationHref = mapsHref(profile.location);
 
@@ -188,30 +202,24 @@ export default async function CardPage({
   const pageStyle =
     theme === "light"
       ? {}
+      : theme === "gradient"
+      ? {
+          background: `linear-gradient(to bottom, ${gradFrom}, ${gradTo})`,
+        }
       : {
           background: bg,
         };
 
   const outerText =
-    theme === "full"
-      ? "text-white"
-      : theme === "dark"
-      ? "text-white"
-      : "text-gray-900";
+    theme === "light" ? "text-gray-900" : "text-white";
 
-  // Main card container
+  // Main card container — keep it floating/transparent on full + gradient
   const cardShell =
-    theme === "full"
+    theme === "full" || theme === "gradient"
       ? "bg-transparent border-0 shadow-none"
       : theme === "dark"
       ? "bg-white border-0 shadow-sm"
       : "bg-white border shadow-sm";
-
-  // QR on white panel in full theme
-  const qrWrap =
-    theme === "full"
-      ? "mt-6 flex flex-col items-center gap-2 rounded-2xl bg-white p-4"
-      : "mt-8 flex flex-col items-center gap-2";
 
   return (
     <main
@@ -230,7 +238,8 @@ export default async function CardPage({
         </div>
 
         {/* optional avatar */}
-        {theme === "full" && profile.avatar_url?.trim() ? (
+        {(theme === "full" || theme === "gradient") &&
+        profile.avatar_url?.trim() ? (
           <div className="mb-5 flex justify-center">
             <img
               src={profile.avatar_url.trim()}
@@ -240,12 +249,12 @@ export default async function CardPage({
           </div>
         ) : null}
 
-        <div className={`w-full rounded-3xl p-6 ${cardShell}`}>
+        <div className={`w-full rounded-2xl p-6 ${cardShell}`}>
           {/* Name + title */}
-          <div className={theme === "full" ? "text-center" : ""}>
+          <div className={uiVariant === "full" ? "text-center" : ""}>
             <h1
               className={`text-2xl font-semibold ${
-                theme === "full" ? "text-white" : "text-gray-900"
+                uiVariant === "full" ? "text-white" : "text-gray-900"
               }`}
             >
               {profile.full_name ?? "Unnamed"}
@@ -254,7 +263,7 @@ export default async function CardPage({
             {(profile.title || profile.company) && (
               <p
                 className={`mt-1 ${
-                  theme === "full" ? "text-white/70" : "text-gray-600"
+                  uiVariant === "full" ? "text-white/70" : "text-gray-600"
                 }`}
               >
                 {profile.title ?? ""}
@@ -268,9 +277,9 @@ export default async function CardPage({
             <a
               href={`/api/vcf?slug=${encodeURIComponent(slug)}`}
               className={
-                theme === "full"
-                  ? "block w-full rounded-2xl bg-white/15 border border-white/20 px-4 py-3 text-center font-semibold text-white hover:bg-white/20 transition backdrop-blur-md"
-                  : "block w-full rounded-2xl border px-4 py-3 text-center font-semibold hover:bg-gray-50 transition"
+                uiVariant === "full"
+                  ? "block w-full rounded-xl bg-white/15 border border-white/20 px-4 py-3 text-center font-semibold text-white hover:bg-white/20 transition backdrop-blur-md"
+                  : "block w-full rounded-xl border px-4 py-3 text-center font-semibold hover:bg-gray-50 transition"
               }
             >
               Save Contact
@@ -285,7 +294,7 @@ export default async function CardPage({
                 icon={Phone}
                 title="Call me"
                 subtitle={profile.phone}
-                variant={theme === "light" ? "light" : theme}
+                variant={uiVariant}
               />
             ) : null}
 
@@ -295,7 +304,7 @@ export default async function CardPage({
                 icon={Mail}
                 title="Email me"
                 subtitle={profile.email}
-                variant={theme === "light" ? "light" : theme}
+                variant={uiVariant}
               />
             ) : null}
 
@@ -305,7 +314,7 @@ export default async function CardPage({
                 icon={Globe}
                 title="Visit my website"
                 subtitle={profile.website}
-                variant={theme === "light" ? "light" : theme}
+                variant={uiVariant}
               />
             ) : null}
 
@@ -315,7 +324,7 @@ export default async function CardPage({
                 icon={MapPin}
                 title="Find me"
                 subtitle={profile.location}
-                variant={theme === "light" ? "light" : theme}
+                variant={uiVariant}
               />
             ) : null}
 
@@ -329,7 +338,7 @@ export default async function CardPage({
                   icon={Icon}
                   title={link.label}
                   subtitle={link.url}
-                  variant={theme === "light" ? "light" : theme}
+                  variant={uiVariant}
                 />
               );
             })}
@@ -339,31 +348,26 @@ export default async function CardPage({
           {profile.bio ? (
             <p
               className={`mt-6 text-sm ${
-                theme === "full" ? "text-white/80" : "text-gray-700"
+                uiVariant === "full" ? "text-white/80" : "text-gray-700"
               }`}
             >
               {profile.bio}
             </p>
           ) : null}
 
-          {/* QR */}
-<div className="mt-4 flex justify-center">
-  <div className="inline-flex flex-col items-center gap-1 rounded-lg bg-white px-3 py-2">
-    <img
-      src={`/api/qr?slug=${encodeURIComponent(slug)}`}
-      alt="QR"
-      className="w-32 h-32"
-    />
-    <p className="text-[11px] text-gray-600">
-      Scan to open this card
-    </p>
-  </div>
-</div>
-
-
+          {/* QR — tighter padding + less rounded + centered + equal padding */}
+          <div className="mt-4 flex justify-center">
+            <div className="inline-flex flex-col items-center gap-1 rounded-md bg-white p-2">
+              <img
+                src={`/api/qr?slug=${encodeURIComponent(slug)}`}
+                alt="QR"
+                className="w-32 h-32"
+              />
+              <p className="text-[11px] text-gray-600">Scan to open this card</p>
+            </div>
+          </div>
         </div>
       </div>
     </main>
   );
 }
-
