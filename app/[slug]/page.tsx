@@ -227,15 +227,18 @@ export default async function CardPage({
       style={pageStyle}
     >
       <div className="w-full max-w-md">
-        {/* LOGO */}
-        <div className="mb-6 flex justify-center">
-          <img
-            src={logoSrc}
-            alt={`${profile.company ?? "Company"} logo`}
-            className="h-20 w-auto max-w-full object-contain"
-            loading="eager"
-          />
-        </div>
+        {/* LOGO (fixed slot so it never shifts layout) */}
+<div className="mb-6 flex justify-center">
+  <div className="h-28 w-full flex items-center justify-center">
+    <img
+      src={logoSrc}
+      alt={`${profile.company ?? "Company"} logo`}
+      className="max-h-28 w-auto max-w-[260px] object-contain"
+      loading="eager"
+    />
+  </div>
+</div>
+
 
         {/* optional avatar */}
         {(theme === "full" || theme === "gradient") &&
@@ -312,7 +315,7 @@ export default async function CardPage({
               <RowLink
                 href={websiteHref}
                 icon={Globe}
-                title="Visit my website"
+                title="View website"
                 subtitle={profile.website}
                 variant={uiVariant}
               />
