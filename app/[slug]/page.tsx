@@ -295,7 +295,7 @@ export default async function CardPage({
               <RowLink
                 href={`tel:${profile.phone}`}
                 icon={Phone}
-                title="Call me"
+                title="Telephone"
                 subtitle={profile.phone}
                 variant={uiVariant}
               />
@@ -305,7 +305,7 @@ export default async function CardPage({
               <RowLink
                 href={`mailto:${profile.email}`}
                 icon={Mail}
-                title="Email me"
+                title="Email"
                 subtitle={profile.email}
                 variant={uiVariant}
               />
@@ -315,7 +315,7 @@ export default async function CardPage({
               <RowLink
                 href={websiteHref}
                 icon={Globe}
-                title="View website"
+                title="Visit website"
                 subtitle={profile.website}
                 variant={uiVariant}
               />
